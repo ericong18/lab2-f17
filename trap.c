@@ -13,7 +13,6 @@ struct gatedesc idt[256];
 extern uint vectors[];  // in vectors.S: array of 256 entry pointers
 struct spinlock tickslock;
 uint ticks;
-pde_t *pgdir;
 
 void
 tvinit(void)
@@ -80,16 +79,19 @@ trap(struct trapframe *tf)
     break;
   case T_PGFLT: ;
     uint stackPages = myproc()->sb;
+    uint oAddress = rcr2();
 
-    if (rcr2() < USERSTACKTOP - (stackPages * PGSIZE) && rcr2() > PGROUNDDOWN(USERSTACKTOP - (stackPages*PGSIZE) - 1)) {
-      if (allocuvm(pgdir, PGROUNDDOWN(USERSTACKTOP - (stackPages * PGSIZE) - 1), USERSTACKTOP - (stackPages * PGSIZE)) == 0) {
+    if (oAddress < USERSTACKTOP - (stackPages * PGSIZE) && oAddress > PGROUNDDOWN(USERSTACKTOP - (stackPages * PGSIZE) - 1)) {
+      if (allocuvm(myproc()->pgdir, PGROUNDDOWN(USERSTACKTOP - (stackPages * PGSIZE)), USERSTACKTOP - (stackPages * PGSIZE)) == 0) {
         cprintf("Page allocation failed\n");
-        return;
+        break;
       }
       // Increase number of stack pages by 1 upon successfully allocating a new page
       myproc()->sb += 1;
       break;
     }
+    cprintf("Hello\n");
+    break;
 
   //PAGEBREAK: 13
   default:
