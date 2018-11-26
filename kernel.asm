@@ -14686,7 +14686,7 @@ bad:
 80106bdd:	5f                   	pop    %edi
 80106bde:	5d                   	pop    %ebp
 80106bdf:	c3                   	ret    
-  while (sb > 0){
+  for (j = USERSTACKTOP - PGSIZE + 1; sb > 0; sb--, j -= PGSIZE){
 80106be0:	8b 45 10             	mov    0x10(%ebp),%eax
 80106be3:	85 c0                	test   %eax,%eax
 80106be5:	0f 84 9e 00 00 00    	je     80106c89 <copyuvm+0x179>
@@ -14713,9 +14713,8 @@ bad:
 80106c35:	e8 56 f9 ff ff       	call   80106590 <mappages>
 80106c3a:	85 c0                	test   %eax,%eax
 80106c3c:	78 8d                	js     80106bcb <copyuvm+0xbb>
-    j -= PGSIZE;
+  for (j = USERSTACKTOP - PGSIZE + 1; sb > 0; sb--, j -= PGSIZE){
 80106c3e:	81 eb 00 10 00 00    	sub    $0x1000,%ebx
-  while (sb > 0){
 80106c44:	83 6d 10 01          	subl   $0x1,0x10(%ebp)
 80106c48:	74 3f                	je     80106c89 <copyuvm+0x179>
     if((pte = walkpgdir(pgdir, (void *) j, 0)) == 0)

@@ -336,8 +336,8 @@ copyuvm(pde_t *pgdir, uint sz, uint sb)
       goto bad;
   }
   
-  j = USERSTACKTOP - PGSIZE + 1;
-  while (sb > 0){
+  // Copies pages of stack from parent to child
+  for (j = USERSTACKTOP - PGSIZE + 1; sb > 0; sb--, j -= PGSIZE){
     if((pte = walkpgdir(pgdir, (void *) j, 0)) == 0)
       panic("copyuvm: pte should exist");
     if(!(*pte & PTE_P))
@@ -349,9 +349,6 @@ copyuvm(pde_t *pgdir, uint sz, uint sb)
     memmove(mem, (char*)P2V(pa), PGSIZE);
     if(mappages(d, (void*)j, PGSIZE, V2P(mem), flags) < 0)
       goto bad;
-    
-    sb--;
-    j -= PGSIZE;
   }
 
   return d;
