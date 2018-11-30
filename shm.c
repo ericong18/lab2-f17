@@ -29,13 +29,33 @@ void shminit() {
 }
 
 int shm_open(int id, char **pointer) {
+  int i = 0;
 
-//you write this
+  initlock(&(shm_table.lock), "SHM lock");
+  acquire(&(shm_table.lock));
 
+  for (i = 0; i < 64; i++) { 
+   if (shm_table.shm_pages[i].id == id) {
+     uint pa = &shm_table.shm_pages[i].frame;
+     uint va = PGROUNDUP(myproc()->sz);
 
+     if (mappages(myproc()->pgdir, va, PGSIZE, pa, PTE_W|PTE_U) == 0) {
+       goto bad;
+     }
+     shm_table.shm_pages[i].refcnt += 1;
+     *pointer=(char *)va;
+     myproc()->sz += PGSIZE;
+   }
+   else { // shared memory segment does not exist
+     if (!shm_table.shm_pages[i].frame) { // if we find an empty entry
+     
+     }
+   }
+  }
 
+  release(&(shm_table.lock));
 
-return 0; //added to remove compiler warning -- you should decide what to return
+  return 0; //added to remove compiler warning -- you should decide what to return
 }
 
 
