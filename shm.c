@@ -60,7 +60,14 @@ int shm_open(int id, char **pointer) {
 
 
 int shm_close(int id) {
-//you write this too!
+	for (i = 0; i < 64; i++){
+		if (shm_table.shm_pages[i].id == id
+		shm_table.shm_pages[i].refcnt -= 1;
+		if (shm_table.shm_pages[i].refcnt == 0){
+			shm_table.shm_pages[i].id = 0;
+			shm_table.shm_pages[i].frame = 0;	
+		}
+	}//you write this too!
 
 
 
