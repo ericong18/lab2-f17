@@ -30,67 +30,86 @@ void shminit() {
 
 int shm_open(int id, char **pointer) {
   int i = 0;
+  int tempPageNum = -1;
 
   initlock(&(shm_table.lock), "SHM lock");
   acquire(&(shm_table.lock));
-
-  for (i = 0; i < 64; i++) { 
+  
+  // Loop through the table and find page table that matches
+  for (i = 0; i < 64; i++) {
     if (shm_table.shm_pages[i].id == id) {
-      uint pa = (uint)&shm_table.shm_pages[i].frame;
-      uint va = PGROUNDUP(myproc()->sz);
-
-      if (mappages(myproc()->pgdir, (void *)va, PGSIZE, pa, PTE_W|PTE_U) == 0) {
-        goto bad;
-      }
-
-      shm_table.shm_pages[i].refcnt += 1;
-      *pointer = (char *)va;
-      myproc()->sz += PGSIZE;
-    }
-    else { // shared memory segment does not exist
-      if (!shm_table.shm_pages[i].frame) { // if we find an empty entry
-        shm_table.shm_pages[i].id = id;
-        char * ka = kmalloc(PGSIZE, GFP_KERNEL);
-
-        if (!ka) {
-          goto bad;
-        }
-        shm_table.shm_pages[i].frame = ka;
-        shm_table.shm_pages[i].refcnt = 1;
-
-        uint pa = (uint)&shm_table.shm_pages[i].frame;
-        uint va = PGROUNDUP(myproc()->sz);
-
-        if (mappages(myproc()->pgdir, (void *)va, PGSIZE, pa, PTE_W|PTE_U) == 0) {
-          goto bad;
-        }
-
-      }
+      tempPageNum = i;
+      break;
     }
   }
 
-  release(&(shm_table.lock));
+  if (tempPageNum >= 0) {
+    char * pa = shm_table.shm_pages[tempPageNum].frame;
+    uint va = PGROUNDUP(myproc()->sz);
+
+    if (mappages(myproc()->pgdir, (void *)va, PGSIZE, V2P(pa), PTE_W|PTE_U) < 0) {
+      goto bad;
+    }
+
+    shm_table.shm_pages[tempPageNum].refcnt += 1;
+    *pointer = (char *)va;
+    myproc()->sz += PGSIZE;
+  }
+  else {
+    for (i = 0; i < 64; i++) {
+      if (shm_table.shm_pages[i].id == 0) { // if we find an empty entry
+          shm_table.shm_pages[i].id = id;
+
+          char * mem = kalloc();
+          if (!mem) {
+            goto bad;
+          }
+          memset(mem, 0, PGSIZE);
+
+          shm_table.shm_pages[i].frame = mem;
+          shm_table.shm_pages[i].refcnt = 1;
+
+          char * pa = shm_table.shm_pages[i].frame;
+          uint va = PGROUNDUP(myproc()->sz);
+
+          if (mappages(myproc()->pgdir, (void *)va, PGSIZE, V2P(pa), PTE_W|PTE_U) < 0) {
+            goto bad;
+          }
+
+        *pointer = (char *)va;
+        myproc()->sz += PGSIZE;
+        break;
+      }
+    }    
+  }
   
   bad:
-    exit();
-  
+    release(&(shm_table.lock));
+ 
   return 0; //added to remove compiler warning -- you should decide what to return
 }
 
 
 int shm_close(int id) {
-	for (i = 0; i < 64; i++){
-		if (shm_table.shm_pages[i].id == id{
-			shm_table.shm_pages[i].refcnt -= 1;
-			if (shm_table.shm_pages[i].refcnt == 0){
-				shm_table.shm_pages[i].id = 0;
-				shm_table.shm_pages[i].frame = 0;	
-			}
-		}
-	}//you write this too!
+  cprintf("start close\n");
+  
+  int i = 0;
+  initlock(&(shm_table.lock), "SHM lock");
+  acquire(&(shm_table.lock));
 
+  for (i = 0; i < 64; i++){
+    if (shm_table.shm_pages[i].id == id){
+      shm_table.shm_pages[i].refcnt -= 1;
+      if (shm_table.shm_pages[i].refcnt == 0){
+        shm_table.shm_pages[i].id = 0;
+	shm_table.shm_pages[i].frame = 0;	
+      }
+    }
+  }
 
+ release(&(shm_table.lock));
 
+ cprintf("end close\n");
 
 return 0; //added to remove compiler warning -- you should decide what to return
 }

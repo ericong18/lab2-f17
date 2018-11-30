@@ -18,16 +18,16 @@ int main(int argc, char *argv[])
   
 shm_open(1,(char **)&counter);
  
-//  printf(1,"%s returned successfully from shm_open with counter %x\n", pid? "Child": "Parent", counter); 
+  //printf(1,"%s returned successfully from shm_open with counter %x\n", pid? "Child": "Parent", counter); 
   for(i = 0; i < 10000; i++)
     1004:	31 ff                	xor    %edi,%edi
 {
     1006:	56                   	push   %esi
     1007:	53                   	push   %ebx
-     uacquire(&(counter->lock));
      counter->cnt++;
+     //printf(1, "middle cnt\n");
      urelease(&(counter->lock));
-
+     //printf(1, "end cnt\n");
 //print something because we are curious and to give a chance to switch process
      if(i%1000 == 0)
     1008:	bb d3 4d 62 10       	mov    $0x10624dd3,%ebx
